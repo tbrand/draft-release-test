@@ -1,3 +1,3 @@
 ## Release test
 
-major
+hogehoge

@@ -1,39 +1,53 @@
 name: Update Package Version
 
 on:
-  release:
-    types: [created, edited]
+  workflow_run:
+    workflows: ["Release Drafter"]
+    types:
+      - completed
 
 jobs:
   update-version:
     runs-on: ubuntu-latest
-    if: github.event.release.draft == true
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Get release version
-        id: get_version
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_REF: ${{ github.event.release.tag_name }}
+      - name: Get draft release version
+        id: get-version
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            const draftRelease = releases.find(release => release.draft === true);
+            if (!draftRelease) {
+              throw new Error('No draft release found');
+            }
+
+            const version = draftRelease.tag_name.replace(/^v/, '');
+            console.log(`Draft release version: ${version}`);
+            return version;
 
       - name: Update package.json version
         run: |
-          npm version ${{ steps.get_version.outputs.version }} --no-git-tag-version
+          VERSION="${{ steps.get-version.outputs.result }}"
+          npm version $VERSION --no-git-tag-version
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore: update package.json version to ${{ steps.get_version.outputs.version }}"
-          title: "Update package.json version to ${{ steps.get_version.outputs.version }}"
+          commit-message: "chore: update package.json version to ${{ steps.get-version.outputs.result }}"
+          title: "chore: update package.json version to ${{ steps.get-version.outputs.result }}"
           body: |
-            This PR updates the version in package.json to match the new release version.
-            Release: ${{ github.event.release.html_url }}
-          branch: update-package-version
-          base: main
+            Update package.json version to match the latest draft release version.
+            This PR was automatically created by GitHub Actions.
+          branch: "chore/update-package-version"
+          base: "main"
           delete-branch: true

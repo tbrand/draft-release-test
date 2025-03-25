@@ -48,6 +48,6 @@ jobs:
           body: |
             Update package.json version to match the latest draft release version.
             This PR was automatically created by GitHub Actions.
-          branch: "chore/update-package-version"
+          branch: "new-release"
           base: "main"
           delete-branch: true

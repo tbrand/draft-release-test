@@ -75,4 +75,4 @@ jobs:
           base: "main"
           delete-branch: true
           labels: |
-            "new release"
+            new release

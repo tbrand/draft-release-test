@@ -10,6 +10,8 @@ on:
 jobs:
   publish-release:
     if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'new-release'
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
 
     steps:
@@ -42,11 +44,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 release_id: draftRelease.id,
-                tag_name: draftRelease.tag_name,
-                name: draftRelease.name,
-                body: draftRelease.body,
                 draft: false,
-                prerelease: draftRelease.prerelease
               });
               console.log('Release published successfully:', response.data.html_url);
             } catch (error) {

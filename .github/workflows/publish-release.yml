@@ -1,0 +1,42 @@
+name: Publish Draft Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish-release:
+    runs-on: ubuntu-latest
+    if: github.event.head_commit.message contains 'Merge branch ''new-release'''
+
+    steps:
+      - name: Get latest draft release
+        id: get-draft-release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            const draftRelease = releases.find(release => release.draft === true);
+            if (draftRelease) {
+              core.setOutput('release_id', draftRelease.id);
+              core.setOutput('found', 'true');
+            } else {
+              core.setOutput('found', 'false');
+            }
+
+      - name: Publish draft release
+        if: steps.get-draft-release.outputs.found == 'true'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: ${{ steps.get-draft-release.outputs.release_id }},
+              draft: false
+            });

@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get draft release version
+      - name: Get draft release version and URL
         id: get-version
         uses: actions/github-script@v6
         with:
@@ -28,26 +28,49 @@ jobs:
 
             const draftRelease = releases.find(release => release.draft === true);
             if (!draftRelease) {
-              throw new Error('No draft release found');
+              console.log('No draft release found. Skipping version update.');
+              return {
+                version: '',
+                html_url: ''
+              };
             }
 
             const version = draftRelease.tag_name.replace(/^v/, '');
             console.log(`Draft release version: ${version}`);
-            return version;
+            console.log(`Draft release URL: ${draftRelease.html_url}`);
+
+            return {
+              version: version,
+              html_url: draftRelease.html_url
+            };
+
+      - name: Check current version
+        id: check-version
+        if: fromJSON(steps.get-version.outputs.result).version != ''
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          NEW_VERSION="${{ fromJSON(steps.get-version.outputs.result).version }}"
+          if [ "$CURRENT_VERSION" = "$NEW_VERSION" ]; then
+            echo "versions_match=true" >> $GITHUB_OUTPUT
+            echo "Current version ($CURRENT_VERSION) matches new version. Skipping update."
+          else
+            echo "versions_match=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Update package.json version
+        if: fromJSON(steps.get-version.outputs.result).version != '' && steps.check-version.outputs.versions_match != 'true'
         run: |
-          VERSION="${{ steps.get-version.outputs.result }}"
+          VERSION="${{ fromJSON(steps.get-version.outputs.result).version }}"
           npm version $VERSION --no-git-tag-version
 
       - name: Create Pull Request
+        if: fromJSON(steps.get-version.outputs.result).version != '' && steps.check-version.outputs.versions_match != 'true'
         uses: peter-evans/create-pull-request@v5
         with:
-          commit-message: "chore: update package.json version to ${{ steps.get-version.outputs.result }}"
-          title: "chore: update package.json version to ${{ steps.get-version.outputs.result }}"
+          commit-message: "update package.json version to ${{ fromJSON(steps.get-version.outputs.result).version }}"
+          title: "New release: ${{ fromJSON(steps.get-version.outputs.result).version }}"
           body: |
-            Update package.json version to match the latest draft release version.
-            This PR was automatically created by GitHub Actions.
+            📝 New release: ${{ fromJSON(steps.get-version.outputs.result).html_url }}
           branch: "new-release"
           base: "main"
           delete-branch: true

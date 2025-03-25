@@ -74,3 +74,5 @@ jobs:
           branch: "new-release"
           base: "main"
           delete-branch: true
+          labels: |
+            "new release"

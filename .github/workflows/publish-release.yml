@@ -18,8 +18,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get latest draft release
-        id: get-latest-draft
+      - name: Get and publish latest draft release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: actions/github-script@v6
         with:
           script: |
@@ -27,21 +28,24 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo
             });
-            const draftRelease = releases.find(release => release.draft === true);
-            if (draftRelease) {
-              return draftRelease.id;
-            }
-            return '';
-          result-encoding: string
 
-      - name: Publish draft release
-        if: steps.get-latest-draft.outputs.result != ''
-        uses: actions/github-script@v6
-        with:
-          script: |
-            await github.rest.repos.updateRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: ${{ steps.get-latest-draft.outputs.result }},
-              draft: false
-            });
+            const draftRelease = releases.find(release => release.draft === true);
+            if (!draftRelease) {
+              core.setFailed('No draft release found');
+              return;
+            }
+
+            console.log(`Found draft release: ${draftRelease.id}`);
+
+            try {
+              const response = await github.rest.repos.updateRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: draftRelease.id,
+                draft: false
+              });
+              console.log('Release published successfully:', response.data.html_url);
+            } catch (error) {
+              console.error('Error publishing release:', error);
+              core.setFailed(error.message);
+            }

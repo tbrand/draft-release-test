@@ -1,0 +1,39 @@
+name: Update Package Version
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    if: github.event.release.draft == true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Get release version
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_REF: ${{ github.event.release.tag_name }}
+
+      - name: Update package.json version
+        run: |
+          npm version ${{ steps.get_version.outputs.version }} --no-git-tag-version
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update package.json version to ${{ steps.get_version.outputs.version }}"
+          title: "Update package.json version to ${{ steps.get_version.outputs.version }}"
+          body: |
+            This PR updates the version in package.json to match the new release version.
+            Release: ${{ github.event.release.html_url }}
+          branch: update-package-version
+          base: main
+          delete-branch: true

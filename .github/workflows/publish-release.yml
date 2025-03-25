@@ -42,7 +42,11 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 release_id: draftRelease.id,
-                draft: false
+                tag_name: draftRelease.tag_name,
+                name: draftRelease.name,
+                body: draftRelease.body,
+                draft: false,
+                prerelease: draftRelease.prerelease
               });
               console.log('Release published successfully:', response.data.html_url);
             } catch (error) {

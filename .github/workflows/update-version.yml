@@ -67,10 +67,11 @@ jobs:
         if: fromJSON(steps.get-version.outputs.result).version != '' && steps.check-version.outputs.versions_match != 'true'
         uses: peter-evans/create-pull-request@v5
         with:
-          commit-message: "update package.json version to ${{ fromJSON(steps.get-version.outputs.result).version }}"
-          title: "New release: ${{ fromJSON(steps.get-version.outputs.result).version }}"
+          commit-message: "v${{ fromJSON(steps.get-version.outputs.result).version }}"
+          title: "v${{ fromJSON(steps.get-version.outputs.result).version }}"
           body: |
-            📝 New release: ${{ fromJSON(steps.get-version.outputs.result).html_url }}
+            New release: ${{ fromJSON(steps.get-version.outputs.result).html_url }}
+            Merge this PR to publish the release. (Do NOT manually publish the release.)
           branch: "new-release"
           base: "main"
           delete-branch: true

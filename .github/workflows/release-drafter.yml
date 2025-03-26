@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   update_release_draft:
+    if: github.ref != 'refs/heads/new-release'
     permissions:
       contents: write
       pull-requests: write

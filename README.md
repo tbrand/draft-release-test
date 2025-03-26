@@ -1,5 +1,6 @@
 ## Release test
 
 hogehoge
-hoghoge
+hogehoge
+hogehoge
 hogehoge

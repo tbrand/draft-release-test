@@ -1,7 +1,9 @@
 name: Release Drafter
 
 on:
-  push:
+  pull_request:
+    types:
+      - closed
     branches:
       - main
 
@@ -10,7 +12,7 @@ permissions:
 
 jobs:
   update_release_draft:
-    if: github.ref != 'refs/heads/new-release'
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref != 'new-release'
     permissions:
       contents: write
       pull-requests: write
